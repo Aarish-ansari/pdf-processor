@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Processor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e5e0;
+    padding: 2rem;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 1.8rem;
+  }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed #d0d0c8;
+    border-radius: 12px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafaf8;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: #6c63ff;
+    background: #f3f2ff;
+  }
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .dropzone svg { margin-bottom: 10px; color: #aaa; }
+  .dropzone .dz-text { font-size: 15px; color: #555; font-weight: 500; }
+  .dropzone .dz-hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .dropzone.has-file { border-color: #6c63ff; background: #f3f2ff; }
+  .dropzone.has-file .dz-text { color: #6c63ff; }
+
+  /* Options */
+  .options-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+
+  .option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0ec;
+  }
+  .option-row:last-child { border-bottom: none; }
+
+  .option-label { font-size: 14px; color: #333; }
+  .option-desc  { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+  /* Toggle switch */
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: #ddd; border-radius: 24px;
+    cursor: pointer; transition: 0.2s;
+  }
+  .slider:before {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    left: 3px; bottom: 3px;
+    background: white; border-radius: 50%;
+    transition: 0.2s;
+  }
+  input:checked + .slider { background: #6c63ff; }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  /* Button */
+  .btn {
+    width: 100%;
+    padding: 13px;
+    background: #6c63ff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn:hover  { background: #5a52e0; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { background: #b0adf0; cursor: not-allowed; }
+
+  /* Progress */
+  .progress-wrap {
+    display: none;
+    margin-top: 1.2rem;
+    background: #f0f0ec;
+    border-radius: 8px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: #6c63ff;
+    border-radius: 8px;
+    width: 0%;
+    transition: width 0.4s;
+  }
+
+  /* Result */
+  .result {
+    display: none;
+    margin-top: 1.2rem;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    background: #f0faf4;
+    border: 1px solid #b6e8c8;
+  }
+  .result.error {
+    background: #fff3f3;
+    border-color: #f5c0c0;
+  }
+  .result-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a7a3f;
+    margin-bottom: 6px;
+  }
+  .result.error .result-title { color: #c0392b; }
+  .stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 10px;
+  }
+  .stat { font-size: 13px; color: #555; }
+  .stat span { font-weight: 600; color: #1a1a1a; }
+
+  .download-btn {
+    display: inline-block;
+    padding: 8px 20px;
+    background: #1a7a3f;
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .download-btn:hover { background: #155f32; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>📄 PDF Processor</h1>
+  <p class="subtitle">Remove Hindi, trim margins, 2-up layout for printing</p>
+
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept=".pdf">
+    <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.632-8.664 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"/>
+    </svg>
+    <p class="dz-text" id="dzText">Click or drag PDF here</p>
+    <p class="dz-hint">Max 50MB</p>
+  </div>
+
+  <p class="options-title">Options</p>
+
+  <div class="option-row">
+    <div>
+      <div class="option-label">Remove Hindi (right half)</div>
+      <div class="option-desc">Keep only English left column</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="opt_hindi" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="option-row">
+    <div>
+      <div class="option-label">2-up layout</div>
+      <div class="option-desc">2 pages per sheet — half the printing cost</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="opt_2up" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="option-row">
+    <div>
+      <div class="option-label">Remove padding</div>
+      <div class="option-desc">Tight crop around content</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="opt_pad" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <button class="btn" id="processBtn" disabled>Process PDF</button>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-title" id="resultTitle"></div>
+    <div class="stats" id="stats"></div>
+    <a class="download-btn" id="downloadBtn" href="#">⬇ Download PDF</a>
+  </div>
+</div>
+
+<script>
+  const fileInput   = document.getElementById('fileInput');
+  const dropzone    = document.getElementById('dropzone');
+  const dzText      = document.getElementById('dzText');
+  const processBtn  = document.getElementById('processBtn');
+  const progressWrap= document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  const result      = document.getElementById('result');
+  const resultTitle = document.getElementById('resultTitle');
+  const statsDiv    = document.getElementById('stats');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  let selectedFile = null;
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(file) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Please select a PDF file');
+      return;
+    }
+    selectedFile = file;
+    dzText.textContent = file.name;
+    dropzone.classList.add('has-file');
+    processBtn.disabled = false;
+    result.style.display = 'none';
+  }
+
+  processBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    processBtn.disabled = true;
+    processBtn.textContent = 'Processing...';
+    result.style.display = 'none';
+    progressWrap.style.display = 'block';
+
+    // Animate progress bar (fake progress for UX)
+    let prog = 0;
+    const progInterval = setInterval(() => {
+      prog = Math.min(prog + Math.random() * 12, 85);
+      progressBar.style.width = prog + '%';
+    }, 300);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('remove_hindi',   document.getElementById('opt_hindi').checked);
+    formData.append('two_up',         document.getElementById('opt_2up').checked);
+    formData.append('remove_padding', document.getElementById('opt_pad').checked);
+
+    try {
+      const res  = await fetch('/process', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      clearInterval(progInterval);
+      progressBar.style.width = '100%';
+
+      setTimeout(() => {
+        progressWrap.style.display = 'none';
+        progressBar.style.width = '0%';
+
+        if (data.error) {
+          result.className = 'result error';
+          resultTitle.textContent = 'Error: ' + data.error;
+          statsDiv.innerHTML = '';
+          downloadBtn.style.display = 'none';
+        } else {
+          result.className = 'result';
+          resultTitle.textContent = 'Done!';
+          statsDiv.innerHTML = `
+            <div class="stat">Pages: <span>${data.input_pages} → ${data.output_pages}</span></div>
+            <div class="stat">Size: <span>${data.size_mb} MB</span></div>
+          `;
+          downloadBtn.href = '/download/' + data.file_id;
+          downloadBtn.style.display = 'inline-block';
+        }
+        result.style.display = 'block';
+        processBtn.disabled = false;
+        processBtn.textContent = 'Process PDF';
+      }, 400);
+
+    } catch (err) {
+      clearInterval(progInterval);
+      progressWrap.style.display = 'none';
+      result.className = 'result error';
+      resultTitle.textContent = 'Network error. Is the server running?';
+      statsDiv.innerHTML = '';
+      downloadBtn.style.display = 'none';
+      result.style.display = 'block';
+      processBtn.disabled = false;
+      processBtn.textContent = 'Process PDF';
+    }
+  });
+</script>
+</body>
+</html>
